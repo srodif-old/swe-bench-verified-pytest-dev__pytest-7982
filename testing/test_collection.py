@@ -1256,6 +1256,25 @@ def test_collect_sub_with_symlinks(use_pkg, testdir):
     )
 
 
+def test_collect_symlinked_directories(testdir):
+    """Test that symlinked directories are collected properly (regression test for issue #7982)."""
+    # Create a real directory with test files
+    real_dir = testdir.mkdir("real_dir")
+    real_dir.join("test_file.py").write("def test_in_real_dir(): pass")
+    
+    # Create a symlinked directory
+    symlinked_dir = testdir.tmpdir.join("symlinked_dir")
+    symlink_or_skip(str(real_dir), str(symlinked_dir))
+    
+    # Running pytest should collect from both real and symlinked directories
+    result = testdir.runpytest("-v", str(testdir.tmpdir))
+    result.stdout.fnmatch_lines([
+        "real_dir/test_file.py::test_in_real_dir PASSED*",
+        "symlinked_dir/test_file.py::test_in_real_dir PASSED*",
+        "*2 passed in*",
+    ])
+
+
 def test_collector_respects_tbstyle(testdir):
     p1 = testdir.makepyfile("assert 0")
     result = testdir.runpytest(p1, "--tb=native")
